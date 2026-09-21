@@ -1,0 +1,27 @@
+# Ansible
+*.retry
+
+# Ansible Vault passwords
+vault.pass
+
+# Environment/secrets
+.env
+.env.*
+*.secret
+
+# SSH private keys
+*.pem
+*.key
+
+# macOS
+.DS_Store
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# IDE
+.vscode/
+.idea/
