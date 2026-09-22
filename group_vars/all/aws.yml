@@ -1,12 +1,6 @@
 ---
 aws_region: us-east-1
-
 instance_type: t3.micro
-
 key_name: automation-platform-key
-
 ami_id: ami-0fef201115eefe936
-
 instance_name: automation-platform-ssh
-
-deployment_environment: dev

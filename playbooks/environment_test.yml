@@ -1,0 +1,11 @@
+---
+- name: Test environment variables
+  hosts: app
+  gather_facts: false
+  become: false
+
+  tasks:
+    - name: Display deployment environment
+      ansible.builtin.debug:
+        msg: "Deployment environment: {{ deployment_environment }}"
+
