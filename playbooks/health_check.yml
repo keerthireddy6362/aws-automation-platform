@@ -1,0 +1,43 @@
+---
+- name: Validate deployed application
+  hosts: app
+  become: true
+  gather_facts: false
+
+  tasks:
+
+    - name: Check application container
+      community.docker.docker_container_info:
+        name: automation-platform
+      register: container_info
+
+    - name: Validate application container
+      ansible.builtin.assert:
+        that:
+          - container_info.exists
+          - container_info.container.State.Running
+        fail_msg: "Application container is not running"
+        success_msg: "Application container is running"
+
+    - name: Check application health endpoint
+      ansible.builtin.uri:
+        url: "http://127.0.0.1:80/health"
+        method: GET
+        status_code: 200
+        return_content: true
+      register: health_check
+
+    - name: Validate application health
+      ansible.builtin.assert:
+        that:
+          - health_check.status == 200
+          - health_check.content | trim == "healthy"
+        fail_msg: "Application health check failed"
+        success_msg: "Application is healthy"
+
+    - name: Display application validation
+      ansible.builtin.debug:
+        msg:
+          - "Container: running"
+          - "HTTP status: {{ health_check.status }}"
+          - "Health response: {{ health_check.content | trim }}"
