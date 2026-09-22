@@ -1,2 +1,4 @@
 ---
 deployment_environment: dev
+docker_image_name: automation-platform-dev
+docker_container_name: automation-platform-dev

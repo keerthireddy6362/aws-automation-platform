@@ -1,2 +1,4 @@
 ---
 deployment_environment: prod
+docker_image_name: automation-platform-prod
+docker_container_name: automation-platform-prod
