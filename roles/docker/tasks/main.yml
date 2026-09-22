@@ -3,16 +3,19 @@
   ansible.builtin.dnf:
     name: "{{ docker_packages }}"
     state: present
+
 - name: Enable and start Docker
   ansible.builtin.service:
     name: "{{ docker_service_name }}"
     state: started
     enabled: true
+
 - name: Add application user to Docker group
   ansible.builtin.user:
     name: "{{ application_user }}"
     groups: docker
     append: true
+
 - name: Verify Docker installation
   ansible.builtin.command:
     cmd: docker --version
@@ -37,3 +40,101 @@
     msg:
       - "Docker: {{ docker_version.stdout }}"
       - "Docker service: {{ docker_service_status.stdout }}"
+
+# Application deployment with error handling
+- name: Deploy application
+  block:
+
+    - name: Create application directory
+      ansible.builtin.file:
+        path: /opt/automation-platform
+        state: directory
+        owner: "{{ application_user }}"
+        group: "{{ application_user }}"
+        mode: "0755"
+
+    - name: Copy application files
+      ansible.builtin.copy:
+        src: "{{ playbook_dir }}/../app/"
+        dest: /opt/automation-platform/
+        owner: "{{ application_user }}"
+        group: "{{ application_user }}"
+        mode: "0755"
+
+    - name: Build application Docker image
+      community.docker.docker_image:
+        name: "{{ docker_image_name }}"
+        source: build
+        build:
+          path: /opt/automation-platform
+        state: present
+      register: docker_image
+
+    - name: Run application container
+      community.docker.docker_container:
+        name: "{{ docker_container_name }}"
+        image: "{{ docker_image_name }}"
+        state: started
+        restart_policy: unless-stopped
+        published_ports:
+          - "{{ docker_host_port }}:{{ docker_container_port }}"
+        recreate: "{{ docker_image.changed }}"
+
+    - name: Verify application container is running
+      community.docker.docker_container_info:
+        name: "{{ docker_container_name }}"
+      register: deployed_container
+
+    - name: Validate application container
+      ansible.builtin.assert:
+        that:
+          - deployed_container.exists
+          - deployed_container.container.State.Running
+        fail_msg: "Application container failed to start"
+        success_msg: "Application container is running"
+
+    - name: Validate application health endpoint
+      ansible.builtin.uri:
+        url: "http://127.0.0.1:{{ docker_host_port }}/health"
+        method: GET
+        status_code: 200
+        return_content: true
+      register: deployment_health
+
+    - name: Validate deployment health
+      ansible.builtin.assert:
+        that:
+          - deployment_health.status == 200
+          - deployment_health.content | trim == "healthy"
+        fail_msg: "Application deployment health check failed"
+        success_msg: "Application deployment is healthy"
+
+  rescue:
+
+    - name: Check existing application container
+      community.docker.docker_container_info:
+        name: "{{ docker_container_name }}"
+      register: recovery_container
+
+    - name: Check existing application health
+      ansible.builtin.uri:
+        url: "http://127.0.0.1:{{ docker_host_port }}/health"
+        method: GET
+        status_code: 200
+        return_content: true
+      register: recovery_health
+      ignore_errors: true
+
+    - name: Report recovery status
+      ansible.builtin.debug:
+        msg:
+          - "Application deployment failed."
+          - "Existing container: {{ recovery_container.exists | default(false) }}"
+          - "Existing application health: {{ recovery_health.status | default('unavailable') }}"
+          - "Recovery check completed."
+
+  always:
+
+    - name: Deployment completion message
+      ansible.builtin.debug:
+        msg: "Application deployment process completed."
