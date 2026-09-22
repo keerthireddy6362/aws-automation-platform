@@ -1,0 +1,39 @@
+---
+- name: Install Docker
+  ansible.builtin.dnf:
+    name: "{{ docker_packages }}"
+    state: present
+- name: Enable and start Docker
+  ansible.builtin.service:
+    name: "{{ docker_service_name }}"
+    state: started
+    enabled: true
+- name: Add application user to Docker group
+  ansible.builtin.user:
+    name: "{{ application_user }}"
+    groups: docker
+    append: true
+- name: Verify Docker installation
+  ansible.builtin.command:
+    cmd: docker --version
+  register: docker_version
+  changed_when: false
+
+- name: Verify Docker service is running
+  ansible.builtin.command:
+    cmd: systemctl is-active docker
+  register: docker_service_status
+  changed_when: false
+
+- name: Validate Docker service state
+  ansible.builtin.assert:
+    that:
+      - docker_service_status.stdout == "active"
+    fail_msg: "Docker service is not running"
+    success_msg: "Docker service is running"
+
+- name: Display Docker validation results
+  ansible.builtin.debug:
+    msg:
+      - "Docker: {{ docker_version.stdout }}"
+      - "Docker service: {{ docker_service_status.stdout }}"

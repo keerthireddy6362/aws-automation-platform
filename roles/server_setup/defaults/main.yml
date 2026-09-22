@@ -1,0 +1,7 @@
+---
+server_packages:
+  - git
+  - unzip
+  - tar
+
+application_user: appuser

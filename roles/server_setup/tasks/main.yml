@@ -1,0 +1,64 @@
+---
+- name: Update package cache
+  ansible.builtin.dnf:
+    update_cache: true
+
+- name: Install required server packages
+  ansible.builtin.dnf:
+    name: "{{ server_packages }}"
+    state: present
+
+- name: Create application user
+  ansible.builtin.user:
+    name: "{{ application_user }}"
+    state: present
+    create_home: true
+    shell: /bin/bash
+
+- name: Verify application user exists
+  ansible.builtin.command:
+    cmd: "id {{ application_user }}"
+  register: application_user_info
+  changed_when: false
+
+- name: Display server configuration result
+  ansible.builtin.debug:
+    msg:
+      - "Application user: {{ application_user }}"
+      - "User information: {{ application_user_info.stdout }}"
+- name: Configure SSH daemon
+  ansible.builtin.template:
+    src: sshd_config.j2
+    dest: /etc/ssh/sshd_config.d/99-automation.conf
+    owner: root
+    group: root
+    mode: "0600"
+  notify: Restart SSH service
+- name: Verify Git installation
+  ansible.builtin.command:
+    cmd: git --version
+  register: git_version
+  changed_when: false
+
+- name: Verify SSH service is running
+  ansible.builtin.service_facts:
+
+- name: Verify SSH service state
+  ansible.builtin.assert:
+    that:
+      - ansible_facts.services['sshd.service'].state == 'running'
+    fail_msg: "SSH service is not running"
+    success_msg: "SSH service is running"
+
+- name: Verify application user
+  ansible.builtin.command:
+    cmd: "id {{ application_user }}"
+  register: appuser_check
+  changed_when: false
+
+- name: Display server validation results
+  ansible.builtin.debug:
+    msg:
+      - "Git: {{ git_version.stdout }}"
+      - "Application user: {{ application_user }}"
+      - "SSH: running"

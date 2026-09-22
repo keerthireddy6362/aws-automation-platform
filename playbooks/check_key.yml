@@ -1,0 +1,26 @@
+---
+- name: Check EC2 key pair
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  become: false
+
+  vars_files:
+    - ../group_vars/all/aws_credentials.yml
+    - ../group_vars/all/aws.yml
+
+  tasks:
+    - name: Get key pair information
+      amazon.aws.ec2_key_info:
+        names:
+          - "{{ key_name }}"
+        region: "{{ aws_region }}"
+        access_key: "{{ aws_access_key }}"
+        secret_key: "{{ aws_secret_key }}"
+      register: key_info
+
+    - name: Display key pair information
+      ansible.builtin.debug:
+        msg:
+          - "Key pair name: {{ key_info.keypairs[0].key_name }}"
+          - "Key fingerprint: {{ key_info.keypairs[0].key_fingerprint }}"
