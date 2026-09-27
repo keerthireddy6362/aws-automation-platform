@@ -1,7 +1,7 @@
 ---
-server_packages:
+server_setup_packages:
   - git
   - unzip
   - tar
 
-application_user: appuser
+server_setup_application_user: appuser

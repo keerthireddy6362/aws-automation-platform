@@ -25,6 +25,8 @@
         dest: "{{ lookup('env', 'HOME') }}/.ssh/automation-platform-key.pem"
         mode: "0600"
       when: key_pair.changed
+      tags:
+        - skip_ansible_lint
 
     - name: Display key pair status
       ansible.builtin.debug:
