@@ -30,6 +30,13 @@ jobs:
         run: |
           ansible-galaxy collection install -r requirements.yml
 
+      - name: Create CI placeholder credentials
+        run: |
+          cat > group_vars/all/aws_credentials.yml <<'EOF'
+          ---
+          aws_access_key: ci-placeholder-access-key
+          aws_secret_key: ci-placeholder-secret-key
+          EOF
       - name: Check Ansible version
         run: ansible --version
 
